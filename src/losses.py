@@ -1,5 +1,8 @@
 # Loss Functions for Medical Image Segmentation
+<<<<<<< HEAD
 
+=======
+>>>>>>> e8769cf (Prepare local files for synchronization)
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
