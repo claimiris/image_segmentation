@@ -16,8 +16,8 @@ def get_train_transforms(img_size=256):
         A.HorizontalFlip(p=0.5),
         A.VerticalFlip(p=0.5),
         A.RandomRotate90(p=0.5),
-        A.ShiftScaleRotate(shift_limit=0.05, scale_limit=0.1, rotate_limit=30, border_mode=cv2.BORDER_REFLECT, p=0.5),
-        A.ElasticTransform(alpha=120, sigma=120*0.05, p=0.3),
+        A.ShiftScaleRotate(shift_limit=0.05, scale_limit=0.1, rotate_limit=15, border_mode=cv2.BORDER_REFLECT, p=0.5),
+        A.ElasticTransform(alpha=1, sigma=50, alpha_affine=50, p=0.2),
         A.RandomBrightnessContrast(brightness_limit=0.2, contrast_limit=0.2, p=0.5),
         A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
         ToTensorV2(),
@@ -51,7 +51,7 @@ class ISICDataset(Dataset):
         return image, mask
 
 # Builds train, validation, and test DataLoaders
-def build_dataloaders(image_dir, mask_dir, img_size=256, batch_size=8, val_split=0.15, test_split=0.15, seed=42):
+def build_dataloaders(image_dir, mask_dir, img_size=256, batch_size=16, val_split=0.15, test_split=0.15, seed=42):
     image_files = sorted([f for f in os.listdir(image_dir) if f.endswith('.jpg') or f.endswith('.png')])
     image_paths, mask_paths = [], []
     for f in image_files:
@@ -70,7 +70,7 @@ def build_dataloaders(image_dir, mask_dir, img_size=256, batch_size=8, val_split
     def _make_loader(idxs, transform, shuffle):
         ds = ISICDataset([image_paths[i] for i in idxs], [mask_paths[i] for i in idxs], transform)
         return DataLoader(ds, batch_size=batch_size if shuffle else 1, shuffle=shuffle, 
-                          num_workers=0, pin_memory=True, persistent_workers=False)
+                          num_workers=2, pin_memory=True, persistent_workers=True)
 
     return (_make_loader(train_idx, get_train_transforms(img_size), True),
             _make_loader(val_idx, get_val_transforms(img_size), False),

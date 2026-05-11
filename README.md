@@ -8,11 +8,12 @@ This repository integrates formerly separate model implementations into a single
 
 - **Advanced Architectures**: Full implementations of **UNet++** (nested dense architectures) and **TransUNet** (CNN-Transformer hybrid).
 - **Unified Pipeline**: A central structure for dataset loading, augmentation, training loops, and validation to ensure fair comparisons.
-- **Performance Optimizations**: 
-  - Substantial improvements tailored for efficiency, including `torch.compile` support.
-  - Reduced Transformer depth settings for TransUNet to run effectively under memory constraints.
-  - Efficient DataLoader implementations ensuring steady GPU saturation.
-- **Robust Metrics & Losses**: Custom Dice Loss and Binary Cross Entropy (BCE) loss strategies combined with thorough evaluation metrics (IoU, Dice Coefficient).
+- **Training Efficiency**: 
+  - **Computational Resource Context**: Due to a significant shortage of enterprise-grade GPU resources, the experimental scope was fixed at **10 epochs**.
+  - **Optimized Strategy**: The pipeline uses a warmup cosine schedule and `torch.compile` kernel fusion to maximize learning efficiency within this restricted resource window.
+  - **Multi-worker Dataloading**: Optimized `num_workers` and `persistent_workers` used to saturate the available Tesla T4 GPU.
+  - **Reduced Transformer Depth**: Settings for TransUNet refined to run effectively under memory constraints.
+- **Robust Metrics & Losses**: Hybrid **Dice + Focal Loss** implementation to handle class imbalance and maximize overlap. Evaluation includes Dice, IoU, Sensitivity, Specificity, and Hausdorff Distance (HD95).
 
 ## Project Structure
 
@@ -25,8 +26,8 @@ This repository integrates formerly separate model implementations into a single
 ├── src/
 │   ├── dataset.py           # Dataset loading and transforms (ISIC 2018 processing)
 │   ├── trainer.py           # Core training loop, validation, and logging logic
-│   ├── losses.py            # Definition of Dice and combined BCE-Dice losses
-│   └── metrics.py           # Calculation of evaluation metrics (IoU, Dice)
+│   ├── losses.py            # Definition of Hybrid Dice + Focal losses
+│   └── metrics.py           # Calculation of metrics (IoU, Dice, HD95)
 ├── .gitignore               # Git ignore file (excludes data/ and checkpoints)
 ├── README.md                # Project documentation
 └── combined_run.ipynb       # Main entry point for training, evaluation, and visualization

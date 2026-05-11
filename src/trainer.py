@@ -26,7 +26,7 @@ def train_one_epoch(model, loader, opt, loss_fn, scaler, device, is_deep_sup):
     run_loss, nb = 0.0, 0
     tracker = MetricsTracker()
     for imgs, msks in loader:
-        imgs, msks = imgs.to(device), msks.to(device).float()
+        imgs, msks = imgs.to(device, non_blocking=True), msks.to(device, non_blocking=True).float()
         opt.zero_grad()
         with autocast('cuda'):
             out = model(imgs)
@@ -68,6 +68,12 @@ def validate(model, loader, loss_fn, device, is_deep_sup):
 # train model
 def train_model(model, name, train_loader, val_loader, epochs, lr, device, is_deep_sup=False):
     model.to(device)
+    torch.backends.cudnn.benchmark = True
+    if hasattr(torch, "compile"):
+        try:
+            model = torch.compile(model)
+        except:
+            pass
     opt = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-4)
     sched = WarmupCosineScheduler(opt, warmup=5, total=epochs)
     scaler = GradScaler()
@@ -75,6 +81,7 @@ def train_model(model, name, train_loader, val_loader, epochs, lr, device, is_de
     
     history = {'train_loss':[], 'val_loss':[], 'train_dice':[], 'val_dice':[]}
     best_dice = 0.0
+    patience_counter = 0
     t0 = time.time()
 
     for epoch in range(epochs):
@@ -88,8 +95,15 @@ def train_model(model, name, train_loader, val_loader, epochs, lr, device, is_de
         if vm['Dice'] > best_dice:
             best_dice = vm['Dice']
             torch.save(model.state_dict(), f'{name}_best.pth')
+            patience_counter = 0
+        else:
+            patience_counter += 1
             
         print(f"[{name}] Ep {epoch+1}/{epochs} | Loss: {tl:.4f}/{vl:.4f} | Dice: {tm['Dice']:.4f}/{vm['Dice']:.4f} | LR: {sched.get_lr():.2e}")
+
+        if patience_counter >= 15:
+            print(f"Early stopping at epoch {epoch+1}")
+            break
 
     print(f"{name} Training Complete. Best Val Dice: {best_dice:.4f} Time: {(time.time()-t0)/60:.1f}m")
     return history
